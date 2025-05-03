@@ -1,3 +1,4 @@
+import chess
 RANDOM_ARRAY = [
     ((0x3797A0ABC005E436) << 64) | 0x4F8DF6EEA13920BD,
     ((0x2796FB714CE2D11F) << 64) | 0xC1852BFA866FFFF3,
@@ -853,6 +854,48 @@ def hash_add_rating(position, rating):
     if rating < ELO_EXPERT:
         return position ^ RATING_ARRAY[4]
     return position ^ RATING_ARRAY[5]
+
+# See: https://disservin.github.io/chess-library/pages/piece.html and https://python-chess.readthedocs.io/en/latest/core.html
+def piece2num(piece):
+    piece_type = piece.piece_type - 1
+    if piece.color == chess.BLACK:
+        return piece_type + 6
+    return piece_type
+
+def castling_hash_index(board: chess.Board) -> int:
+    return (
+        int(board.has_kingside_castling_rights(chess.WHITE)) +
+        2 * int(board.has_queenside_castling_rights(chess.WHITE)) +
+        4 * int(board.has_kingside_castling_rights(chess.BLACK)) +
+        8 * int(board.has_queenside_castling_rights(chess.BLACK))
+    )
+
+
+def fen2hash(fen, rating):
+    board = chess.Board(fen)
+    hash = 0
+
+    for square in chess.SQUARES:
+        if not board.piece_type_at(square):
+            continue
+        board_piece = board.piece_at(square)
+        piece_num = piece2num(board_piece)
+        hash ^= piece(piece_num, square)
+
+
+    ep_hash = 0
+    if board.ep_square:
+        ep_hash ^= enpassant(board.ep_square)
+
+    stm_hash = 0
+    if board.turn == chess.WHITE:
+        stm_hash ^= side_to_move()
+
+    castling_hash = castling(castling_hash_index(board))
+
+    final_hash = hash ^ ep_hash ^ stm_hash ^ castling_hash
+
+    return hash_add_rating(final_hash, rating)
 
 
 
