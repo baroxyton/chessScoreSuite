@@ -782,6 +782,19 @@ RANDOM_ARRAY = [
     ((0xB708DD340375C20E) << 64) | 0xA9AB83B0EFE006A3,
 ]
 
+RATING_ARRAY = [
+    ((0xcb0b513caf337f02) << 64) | 0x269d7114a6e96349,
+    ((0xca25b6fab0ee253a) << 64) | 0x269f67df63b36d9d,
+    ((0x6aeb8a343b2d70dc) << 64) | 0xb475b1abf7a09b4c,
+    ((0x23e09bea783edf24) << 64) | 0x59314e5bc13da56f,
+    ((0x393ff6b86f1e68fe) << 64) | 0x1ebbcb8cf65f571f,
+    ((0x23fde51cffa9a762) << 64) | 0x4ce04fd7cf70f4f9,
+    ((0x38d03d986c9dcf45) << 64) | 0x847a4bbf42d62dd0,
+    ((0x48ec98e1e3ad3cbc) << 64) | 0x89dfa57a0101c0e1,
+    ((0xdaf0caa5bb558589) << 64) | 0xdffcba2ef0049f35,
+    ((0xa18d07b4e6133689) << 64) | 0x70312ae157600b03
+]
+
 MAP_HASH_PIECE = [1, 3, 5, 7, 9, 11, 0, 2, 4, 6, 8, 10]
 
 
@@ -820,3 +833,26 @@ def castling_index(idx):
 
 def side_to_move():
     return RANDOM_ARRAY[780]
+
+# Rating thresholds
+ELO_NOVICE = 1000
+ELO_BEGINNER = 1400
+ELO_INTERMEDIATE = 1800
+ELO_STRONG = 2200
+ELO_EXPERT = 2600
+
+def hash_add_rating(position, rating):
+    if rating < ELO_NOVICE:
+        return position ^ RATING_ARRAY[0]
+    if rating < ELO_BEGINNER:
+        return position ^ RATING_ARRAY[1]
+    if rating < ELO_INTERMEDIATE:
+        return position ^ RATING_ARRAY[2]
+    if rating < ELO_STRONG:
+        return position ^ RATING_ARRAY[3]
+    if rating < ELO_EXPERT:
+        return position ^ RATING_ARRAY[4]
+    return position ^ RATING_ARRAY[5]
+
+
+
