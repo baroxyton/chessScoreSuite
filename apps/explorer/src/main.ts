@@ -5,6 +5,18 @@ import { Chessboard2 } from "chessboard2";
 import { Chess } from "chess.js";
 import "../node_modules/@chrisoakman/chessboard2/dist/chessboard2.min.css";
 
+const API_URL = " http://0.0.0.0:5554";
+
+let rating = document.querySelector("#rating").value;
+let color = document.querySelector("#color").value;
+
+async function get_moves_fen(fen: string) {
+  const response = await fetch(`${API_URL}/fen/${fen}/${rating}/moves`);
+  const data = await response.json();
+  console.log(data);
+  return data;
+}
+
 let defaultBoard = new Chess();
 let positions = [];
 
@@ -30,6 +42,7 @@ function onMovePlayed(event) {
 
   // make the move on the board
   board.position(defaultBoard.fen());
+  get_moves_fen(btoa(defaultBoard.fen()));
 
   // save the move to the history
   positions.push(move);
