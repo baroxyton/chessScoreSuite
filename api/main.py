@@ -1,5 +1,6 @@
 from db import Database
 from fastapi import FastAPI
+import base64
 
 db = Database()
 
@@ -16,7 +17,7 @@ async def get_position(position_hash: int):
     position = db.get_position(position_hash)
     if position:
         return {
-            "positionID": position["positionID"],
+            "positionID": int.from_bytes(position["positionID"], "little"),
             "timesPlayed": position["timesPlayed"],
             "whiteWins": position["whiteWins"],
             "blackWins": position["blackWins"],
@@ -32,7 +33,7 @@ async def get_next_moves(position_hash: int):
     if moves:
         return [
             {
-                "positionID": move["positionID"],
+                "positionID": int.from_bytes(move["positionID"], byteorder="little"),
                 "timesPlayed": move["timesPlayed"],
                 "whiteWins": move["whiteWins"],
                 "blackWins": move["blackWins"],
@@ -47,10 +48,13 @@ async def get_next_moves(position_hash: int):
 
 @app.get("/fen/{fen}/{rating}/position")
 async def get_position_by_fen(fen: str, rating: int):
-    position = db.get_position_by_fen(fen, rating)
+    print("HELLO, WORLD! HERES SOME FEN", fen)
+    fen = "cm5icWtibnIvcHBwcHBwcHAvOC84LzgvOC9QUFBQUFBQUC9STkJRS0JOUiB3IEtRa3EgLSAw"
+    fen_dec = base64.b64decode(fen).decode("utf-8")
+    position = db.get_position_by_fen(fen_dec, rating)
     if position:
         return {
-            "positionID": position["positionID"],
+            "positionID": int.from_bytes(position["positionID"], byteorder="little"),
             "timesPlayed": position["timesPlayed"],
             "whiteWins": position["whiteWins"],
             "blackWins": position["blackWins"],
@@ -62,11 +66,12 @@ async def get_position_by_fen(fen: str, rating: int):
 
 @app.get("/fen/{fen}/{rating}/position/moves")
 async def get_next_moves_by_fen(fen: str, rating: int):
-    moves = db.get_next_moves_by_fen(fen, rating)
+    fen_dec = base64.b64decode(fen).decode("utf-8")
+    moves = db.get_next_moves_by_fen(fen_dec, rating)
     if moves:
         return [
             {
-                "positionID": move["positionID"],
+                "positionID": int.from_bytes(move["positionID"], byteorder="little"),
                 "timesPlayed": move["timesPlayed"],
                 "whiteWins": move["whiteWins"],
                 "blackWins": move["blackWins"],

@@ -1,7 +1,7 @@
 import sqlite3
 from chess_hash import fen2hash
 
-FILE = "./results.sqlite"
+FILE = "../models/results.sqlite"
 
 
 class Database:
@@ -21,7 +21,7 @@ class Database:
             print("Connection closed.")
 
     def get_position(self, position_hash):
-        hash_blob = position_hash.to_bytes(16, byteorder="small")
+        hash_blob = position_hash.to_bytes(16, byteorder="little")
         self.cursor.execute(
             "SELECT * FROM chessPosition WHERE positionID = ?",
             (hash_blob,),
@@ -39,7 +39,7 @@ class Database:
         return None
 
     def get_next_moves(self, position_hash):
-        hash_blob = position_hash.to_bytes(16, byteorder="small")
+        hash_blob = position_hash.to_bytes(16, byteorder="little")
         self.cursor.execute(
             """SELECT 
                 chessPosition.timesPlayed as pos_times_played ,
