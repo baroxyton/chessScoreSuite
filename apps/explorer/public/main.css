@@ -8,3 +8,23 @@
 body {
   font-family: "Open Sans", sans-serif;
 }
+
+#title {
+  text-align: center;
+}
+
+#main {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr;
+  grid-gap: 50px;
+  margin: 20px;
+  padding: 20px;
+}
+
+#moveList,
+#boardOptions {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  margin-left: 10%;
+  margin-right: 10%;
+}
