@@ -10,11 +10,35 @@ const API_URL = " http://0.0.0.0:5554";
 let rating = document.querySelector("#rating").value;
 let color = document.querySelector("#color").value;
 
-async function get_moves_fen(fen: string) {
+let moves = [];
+
+async function getMovesFen(fen: string) {
   const response = await fetch(`${API_URL}/fen/${fen}/${rating}/moves`);
   const data = await response.json();
-  console.log(data);
   return data;
+}
+
+async function loadMoves() {
+  const fen = btoa(defaultBoard.fen());
+  const response = await fetch(`${API_URL}/fen/${fen}/${rating}/moves`);
+  moves = await response.json();
+}
+
+function renderMoves() {
+  const movesTable = document.querySelector("#moveTable");
+  movesTable.innerHTML =
+    "<tr><th>Move</th><th>Times Played</th><th>% Played</th><th>Average Winning Rate</th><th>Recursive Winning Rate</th></tr>";
+  moves.forEach((move) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${move.moveSAN}</td>
+      <td>${move.move_times_played}</td>
+      <td>${move.move_times_played / 1000}</td>
+      <td>${(color == "white" ? move.whiteWins : move.blackWins) / move.timesPlayed}</td>
+      <td>${color == "white" ? move.recursiveScoreWhite : move.recursiveScoreBlack}</td>
+    `;
+    movesTable.appendChild(row);
+  });
 }
 
 let defaultBoard = new Chess();
@@ -24,7 +48,7 @@ function onDragStart(source, piece) {
   return true;
 }
 
-function onMovePlayed(event) {
+async function onMovePlayed(event) {
   // get the move from the event
   let isError = false;
   let move;
@@ -42,7 +66,9 @@ function onMovePlayed(event) {
 
   // make the move on the board
   board.position(defaultBoard.fen());
-  get_moves_fen(btoa(defaultBoard.fen()));
+
+  await loadMoves();
+  renderMoves();
 
   // save the move to the history
   positions.push(move);
