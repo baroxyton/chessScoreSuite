@@ -49,8 +49,6 @@ async def get_next_moves(position_hash: int):
 
 @app.get("/fen/{fen}/{rating}/position")
 async def get_position_by_fen(fen: str, rating: int):
-    print("HELLO, WORLD! HERES SOME FEN", fen)
-    fen = "cm5icWtibnIvcHBwcHBwcHAvOC84LzgvOC9QUFBQUFBQUC9STkJRS0JOUiB3IEtRa3EgLSAw"
     fen_dec = base64.b64decode(fen).decode("utf-8")
     position = db.get_position_by_fen(fen_dec, rating)
     if position:
