@@ -42,16 +42,18 @@ class Database:
         hash_blob = position_hash.to_bytes(16, byteorder="little")
         self.cursor.execute(
             """SELECT 
-                chessPosition.timesPlayed as pos_times_played ,
-                chessPosition.positionID,
-                chessPosition.whiteWins,
-                chessPosition.blackWins,
-                chessPosition.recursiveScoreWhite,
-                chessPosition.recursiveScoreBlack,
-                chessMove.timesPlayed as move_times_played
-                FROM chessMove WHERE startPosition = ?
-                JOIN chessPosition ON chessMove.endPosition = chessPosition.positionID
-               """,
+    chessPosition.timesPlayed AS pos_times_played,
+    chessPosition.positionID,
+    chessPosition.whiteWins,
+    chessPosition.blackWins,
+    chessPosition.recursiveScoreWhite,
+    chessPosition.recursiveScoreBlack,
+    chessMove.timesPlayed AS move_times_played,
+    chessMove.moveSAN
+    FROM chessMove
+    JOIN chessPosition ON chessMove.endPosition = chessPosition.positionID
+    WHERE chessMove.startPosition = ?
+""",
             (hash_blob,),
         )
         result = self.cursor.fetchall()
@@ -67,6 +69,7 @@ class Database:
                         "recursiveScoreWhite": row[4],
                         "recursiveScoreBlack": row[5],
                         "move_times_played": row[6],
+                        "moveSAN": row[7],
                     }
                 )
             return moves

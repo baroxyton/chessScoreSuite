@@ -40,6 +40,7 @@ async def get_next_moves(position_hash: int):
                 "recursiveScoreWhite": move["recursiveScoreWhite"],
                 "recursiveScoreBlack": move["recursiveScoreBlack"],
                 "move_times_played": move["move_times_played"],
+                "moveSAN": move["moveSAN"],
             }
             for move in moves
         ]
@@ -64,7 +65,7 @@ async def get_position_by_fen(fen: str, rating: int):
     return {"error": "Position not found"}
 
 
-@app.get("/fen/{fen}/{rating}/position/moves")
+@app.get("/fen/{fen}/{rating}/moves")
 async def get_next_moves_by_fen(fen: str, rating: int):
     fen_dec = base64.b64decode(fen).decode("utf-8")
     moves = db.get_next_moves_by_fen(fen_dec, rating)
@@ -78,6 +79,7 @@ async def get_next_moves_by_fen(fen: str, rating: int):
                 "recursiveScoreWhite": move["recursiveScoreWhite"],
                 "recursiveScoreBlack": move["recursiveScoreBlack"],
                 "move_times_played": move["move_times_played"],
+                "moveSAN": move["moveSAN"],
             }
             for move in moves
         ]
