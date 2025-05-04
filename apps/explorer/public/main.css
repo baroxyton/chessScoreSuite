@@ -4,8 +4,14 @@
   font-weight: normal;
   font-style: normal;
 }
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
 
 body {
+  margin: 0;
   font-family: "Open Sans", sans-serif;
 }
 
@@ -27,4 +33,34 @@ body {
   border-radius: 10px;
   margin-left: 10%;
   margin-right: 10%;
+  text-align: center;
+}
+
+.tableWrapper {
+  width: 100vw;
+  display: grid;
+  justify-content: center;
+  align-content: center;
+}
+
+#tableView {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+}
+
+table {
+  border-collapse: collapse;
+}
+tr {
+  border-bottom: 1px solid #ccc;
+}
+th,
+td {
+  width: 20vw;
+  line-height: 50px;
+}
+th {
+  color: #777;
 }
