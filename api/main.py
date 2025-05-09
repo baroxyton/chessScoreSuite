@@ -32,6 +32,7 @@ async def get_position(position_hash: int):
             "blackWins": position["blackWins"],
             "recursiveScoreWhite": position["recursiveScoreWhite"],
             "recursiveScoreBlack": position["recursiveScoreBlack"],
+            "elo": position["elo"],
         }
     return {"error": "Position not found"}
 
@@ -68,6 +69,7 @@ async def get_position_by_fen(fen: str, rating: int):
             "blackWins": position["blackWins"],
             "recursiveScoreWhite": position["recursiveScoreWhite"],
             "recursiveScoreBlack": position["recursiveScoreBlack"],
+            "elo": position["elo"],
         }
     return {"error": "Position not found"}
 

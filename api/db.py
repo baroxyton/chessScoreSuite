@@ -23,7 +23,7 @@ class Database:
     def get_position(self, position_hash):
         hash_blob = position_hash.to_bytes(16, byteorder="little")
         self.cursor.execute(
-            "SELECT * FROM chessPosition WHERE positionID = ?",
+            "SELECT positionID, timesPlayed, whiteWins, blackWins, recursiveScoreWhite, recursiveScoreBlack, elo FROM chessPosition WHERE positionID = ?",
             (hash_blob,),
         )
         result = self.cursor.fetchone()
@@ -35,6 +35,7 @@ class Database:
                 "blackWins": result[3],
                 "recursiveScoreWhite": result[4],
                 "recursiveScoreBlack": result[5],
+                "elo": result[6],
             }
         return None
 
@@ -49,7 +50,8 @@ class Database:
     chessPosition.recursiveScoreWhite,
     chessPosition.recursiveScoreBlack,
     chessMove.timesPlayed AS move_times_played,
-    chessMove.moveSAN
+    chessMove.moveSAN,
+    chessMove.elo
     FROM chessMove
     JOIN chessPosition ON chessMove.endPosition = chessPosition.positionID
     WHERE chessMove.startPosition = ?
@@ -70,6 +72,7 @@ class Database:
                         "recursiveScoreBlack": row[5],
                         "move_times_played": row[6],
                         "moveSAN": row[7],
+                        "elo": row[8],
                     }
                 )
             return moves
