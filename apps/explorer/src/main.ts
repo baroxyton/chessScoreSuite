@@ -10,7 +10,54 @@ const API_URL = " http://0.0.0.0:5554";
 let rating = document.querySelector("#rating").value;
 let color = document.querySelector("#color").value;
 
-let moves = [];
+document.querySelector("#rating").addEventListener("change", async (event) => {
+  rating = event.target.value;
+  await loadMoves();
+  renderMoves();
+});
+document.querySelector("#color").addEventListener("change", async (event) => {
+  color = event.target.value;
+  await loadMoves();
+  renderMoves();
+});
+
+let moves: any[] = [];
+let renderColumn = 0;
+
+function sortMoves() {
+  const column = renderColumn;
+  if (column == 0) {
+    moves.sort((a, b) => {
+      return b.moveSAN.localeCompare(a.moveSAN);
+    });
+  }
+  if (column == 1 || column == 2) {
+    moves.sort((a, b) => {
+      return b.move_times_played - a.move_times_played;
+    });
+  }
+  if (column == 3) {
+    moves.sort((a, b) => {
+      const aWinRate =
+        a.color == "white"
+          ? a.whiteWins / a.timesPlayed
+          : a.blackWins / a.timesPlayed;
+      const bWinRate =
+        b.color == "white"
+          ? b.whiteWins / b.timesPlayed
+          : b.blackWins / b.timesPlayed;
+      return aWinRate - bWinRate;
+    });
+  }
+  if (column == 4) {
+    moves.sort((a, b) => {
+      return (
+        (color == "white" ? b.recursiveScoreWhite : b.recursiveScoreBlack) -
+        (color == "white" ? a.recursiveScoreWhite : a.recursiveScoreBlack)
+      );
+    });
+  }
+}
 
 async function getMovesFen(fen: string) {
   const response = await fetch(`${API_URL}/fen/${fen}/${rating}/moves`);
@@ -25,7 +72,13 @@ async function loadMoves() {
 }
 
 function renderMoves() {
+  // sort the moves
+  sortMoves();
   const movesTable = document.querySelector("#moveTable");
+  if (!movesTable) {
+    console.log("ERROR: CANNOT FIND #moveTable");
+    return;
+  }
   movesTable.innerHTML =
     "<tr><th>Move</th><th>Times Played</th><th>% Played</th><th>Average Winning Rate</th><th>Recursive Winning Rate</th></tr>";
   moves.forEach((move) => {
@@ -39,16 +92,25 @@ function renderMoves() {
     `;
     movesTable.appendChild(row);
   });
+  // add event listeners to the table headers
+  const headers = movesTable.querySelectorAll("th");
+  headers.forEach((header, index) => {
+    header.addEventListener("click", () => {
+      console.log(index);
+      renderColumn = index;
+      renderMoves();
+    });
+  });
 }
 
 let defaultBoard = new Chess();
 let positions = [];
 
-function onDragStart(source, piece) {
+function onDragStart(source: number, piece: number) {
   return true;
 }
 
-async function onMovePlayed(event) {
+async function onMovePlayed(event: any) {
   // get the move from the event
   let isError = false;
   let move;
