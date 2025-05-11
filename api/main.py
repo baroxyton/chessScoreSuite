@@ -26,7 +26,7 @@ async def get_position(position_hash: int):
     position = db.get_position(position_hash)
     if position:
         return {
-            "positionID": int.from_bytes(position["positionID"], "little"),
+            "positionID": str(int.from_bytes(position["positionID"], "little")),
             "timesPlayed": position["timesPlayed"],
             "whiteWins": position["whiteWins"],
             "blackWins": position["blackWins"],
@@ -43,7 +43,9 @@ async def get_next_moves(position_hash: int):
     if moves:
         return [
             {
-                "positionID": int.from_bytes(move["positionID"], byteorder="little"),
+                "positionID": str(
+                    int.from_bytes(move["positionID"], byteorder="little")
+                ),
                 "timesPlayed": move["timesPlayed"],
                 "whiteWins": move["whiteWins"],
                 "blackWins": move["blackWins"],
@@ -63,7 +65,9 @@ async def get_position_by_fen(fen: str, rating: int):
     position = db.get_position_by_fen(fen_dec, rating)
     if position:
         return {
-            "positionID": int.from_bytes(position["positionID"], byteorder="little"),
+            "positionID": str(
+                int.from_bytes(position["positionID"], byteorder="little")
+            ),
             "timesPlayed": position["timesPlayed"],
             "whiteWins": position["whiteWins"],
             "blackWins": position["blackWins"],
@@ -81,7 +85,9 @@ async def get_next_moves_by_fen(fen: str, rating: int):
     if moves:
         return [
             {
-                "positionID": int.from_bytes(move["positionID"], byteorder="little"),
+                "positionID": str(
+                    int.from_bytes(move["positionID"], byteorder="little")
+                ),
                 "timesPlayed": move["timesPlayed"],
                 "whiteWins": move["whiteWins"],
                 "blackWins": move["blackWins"],

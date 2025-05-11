@@ -22,6 +22,7 @@ document.querySelector("#color").addEventListener("change", async (event) => {
 });
 
 let moves: any[] = [];
+let currentMove: any = null;
 let renderColumn = 0;
 
 function sortMoves() {
@@ -38,15 +39,10 @@ function sortMoves() {
   }
   if (column == 3) {
     moves.sort((a, b) => {
-      const aWinRate =
-        a.color == "white"
-          ? a.whiteWins / a.timesPlayed
-          : a.blackWins / a.timesPlayed;
-      const bWinRate =
-        b.color == "white"
-          ? b.whiteWins / b.timesPlayed
-          : b.blackWins / b.timesPlayed;
-      return aWinRate - bWinRate;
+      return (
+        (color == "white" ? b.whiteWins : b.blackWins) / b.timesPlayed -
+        (color == "white" ? a.whiteWins : a.blackWins) / a.timesPlayed
+      );
     });
   }
   if (column == 4) {
@@ -59,16 +55,52 @@ function sortMoves() {
   }
 }
 
-async function getMovesFen(fen: string) {
+async function loadMovesFen() {
+  const fen = btoa(defaultBoard.fen());
   const response = await fetch(`${API_URL}/fen/${fen}/${rating}/moves`);
+  moves = await response.json();
+}
+
+async function loadMoves() {
+  if (currentMove && currentMove.positionID) {
+    const response = await fetch(
+      `${API_URL}/position/${currentMove.positionID}/moves`,
+    );
+    moves = await response.json();
+    if (!moves.length) {
+      moves = [];
+      return;
+    }
+    movesAddFen();
+  } else {
+    await loadMovesFen();
+  }
+}
+
+async function fetchMoveFen() {
+  const response = await fetch(
+    `${API_URL}/fen/${btoa(defaultBoard.fen())}/${rating}/position`,
+  );
   const data = await response.json();
   return data;
 }
 
-async function loadMoves() {
-  const fen = btoa(defaultBoard.fen());
-  const response = await fetch(`${API_URL}/fen/${fen}/${rating}/moves`);
-  moves = await response.json();
+async function loadCurrentMove() {
+  // check if current move is known
+  let moveFound = moves.find((m) => m.fen == defaultBoard.fen());
+  if (moveFound) {
+    currentMove = moveFound;
+  } else {
+    currentMove = await fetchMoveFen();
+  }
+}
+
+function movesAddFen() {
+  moves.forEach((move) => {
+    let boardClone = new Chess(defaultBoard.fen());
+    boardClone.move(move.moveSAN);
+    move.fen = boardClone.fen();
+  });
 }
 
 function renderMoves() {
@@ -79,16 +111,23 @@ function renderMoves() {
     console.log("ERROR: CANNOT FIND #moveTable");
     return;
   }
+  function percent(value: number) {
+    return (value * 100).toFixed(2) + "%";
+  }
   movesTable.innerHTML =
     "<tr><th>Move</th><th>Times Played</th><th>% Played</th><th>Average Winning Rate</th><th>Recursive Winning Rate</th></tr>";
+  // get the total number of moves Played
+  const totalPlayed = moves.reduce((acc, move) => {
+    return acc + move.move_times_played;
+  }, 0);
   moves.forEach((move) => {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${move.moveSAN}</td>
       <td>${move.move_times_played}</td>
-      <td>${move.move_times_played / 1000}</td>
-      <td>${(color == "white" ? move.whiteWins : move.blackWins) / move.timesPlayed}</td>
-      <td>${color == "white" ? move.recursiveScoreWhite : move.recursiveScoreBlack}</td>
+      <td>${percent(move.move_times_played / totalPlayed)}</td>
+      <td>${percent((color == "white" ? move.whiteWins : move.blackWins) / move.timesPlayed)}</td>
+      <td>${percent(color == "white" ? move.recursiveScoreWhite : move.recursiveScoreBlack)}</td>
     `;
     movesTable.appendChild(row);
   });
@@ -129,6 +168,8 @@ async function onMovePlayed(event: any) {
   // make the move on the board
   board.position(defaultBoard.fen());
 
+  await loadCurrentMove();
+
   await loadMoves();
   renderMoves();
 
@@ -145,3 +186,10 @@ const config = {
 };
 
 const board = Chessboard2("board", config);
+
+async function init() {
+  await loadCurrentMove();
+  await loadMoves();
+  renderMoves();
+}
+init();
