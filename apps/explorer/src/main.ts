@@ -12,6 +12,7 @@ let color = document.querySelector("#color").value;
 
 document.querySelector("#rating").addEventListener("change", async (event) => {
   rating = event.target.value;
+  currentMove = null;
   await loadMoves();
   renderMoves();
 });
@@ -117,9 +118,14 @@ function renderMoves() {
   movesTable.innerHTML =
     "<tr><th>Move</th><th>Times Played</th><th>% Played</th><th>Average Winning Rate</th><th>Recursive Winning Rate</th></tr>";
   // get the total number of moves Played
-  const totalPlayed = moves.reduce((acc, move) => {
-    return acc + move.move_times_played;
-  }, 0);
+  let totalPlayed = 0;
+  if (currentMove && currentMove.timesPlayed) {
+    totalPlayed = currentMove.timesPlayed;
+  } else {
+    totalPlayed = moves.reduce((acc, move) => {
+      return acc + move.move_times_played;
+    }, 0);
+  }
   moves.forEach((move) => {
     const row = document.createElement("tr");
     row.innerHTML = `
@@ -193,3 +199,15 @@ async function init() {
   renderMoves();
 }
 init();
+
+const resetButton = document.querySelector("#reset");
+if (resetButton) {
+  resetButton.addEventListener("click", () => {
+    defaultBoard.reset();
+    board.position(defaultBoard.fen());
+    positions = [];
+    moves = [];
+    currentMove = null;
+    renderMoves();
+  });
+}
