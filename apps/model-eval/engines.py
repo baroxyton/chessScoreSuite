@@ -1,7 +1,8 @@
-import chess
-import random
 import base64
+import random
 import requests
+
+import chess
 import chess.engine
 
 STOCKFISH_PATH = "/usr/bin/stockfish"
@@ -11,21 +12,24 @@ API_BASE_URL = "http://localhost:5554"
 def sf_best_move(board):
     with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
         result = engine.play(board, chess.engine.Limit(depth=17))
+        if result.move is None:
+            return None
         return result.move.uci()
 
 
 def eval_pos(board):
     with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
         info = engine.analyse(board, chess.engine.Limit(depth=17))
+        if "score" not in info:
+            return None
         score = info["score"].white()
         return score.score(mate_score=10000)
 
 
 def avg_player_move(position, elo):
-    """Get average player move for a position at given ELO rating using weighted random selection."""
 
     # Encode FEN position for URL
-    fen_encoded = base64.b64encode(position.encode("utf-8")).decode("utf-8")
+    fen_encoded = base64.b64encode(position.fen().encode("utf-8")).decode("utf-8")
 
     url = f"{API_BASE_URL}/fen/{fen_encoded}/{elo}/moves"
 
@@ -47,7 +51,7 @@ def avg_player_move(position, elo):
 
 def recursivebest_move(position, elo, color):
     # Encode FEN position for URL
-    fen_encoded = base64.b64encode(position.encode("utf-8")).decode("utf-8")
+    fen_encoded = base64.b64encode(position.fen().encode("utf-8")).decode("utf-8")
 
     url = f"{API_BASE_URL}/fen/{fen_encoded}/{elo}/moves"
 
