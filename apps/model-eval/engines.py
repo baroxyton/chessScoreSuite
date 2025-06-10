@@ -62,7 +62,7 @@ def recursivebest_move(position, elo, color):
 
         if isinstance(moves_data, list) and moves_data:
             # Choose move with best recursive score for the given color
-            if color.lower() == "white":
+            if color == True:
                 best_move = max(moves_data, key=lambda x: x["recursiveScoreWhite"])
             else:  # black
                 best_move = max(moves_data, key=lambda x: x["recursiveScoreBlack"])
