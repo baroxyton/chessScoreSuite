@@ -1,14 +1,11 @@
 import engines
 import chess
 
+openings = []
 
-def test():
-    board = chess.Board()
-    avgMove = engines.avg_player_move(board, 1000)
-    sfMove = engines.sf_best_move(board)
-    rbm = engines.recursivebest_move(board, 1000, True)
-
-    print(avgMove, sfMove, rbm)
-
-
-test()
+file = open("openings.txt", "r")
+for line in file:
+    if line.strip() == "":
+        continue
+    openings.append(line.strip())
+file.close()
