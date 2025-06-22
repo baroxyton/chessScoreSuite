@@ -48,6 +48,27 @@ def avg_player_move(position, elo):
     except (requests.RequestException, KeyError, ValueError):
         return None
 
+def eval_pos_avg(position, elo):
+    # Encode FEN position for URL
+    fen_encoded = base64.b64encode(position.fen().encode("utf-8")).decode("utf-8")
+    url = f"{API_BASE_URL}/fen/{fen_encoded}/{elo}/position"
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        position_data = response.json()
+
+        if position_data and "whiteWins" in position_data and "timesPlayed" in position_data:
+            times_played = position_data["timesPlayed"]
+            white_wins = position_data["whiteWins"]
+
+            if times_played > 0:
+                avg_winning_rate = white_wins / times_played
+                return avg_winning_rate
+
+        return None
+    except (requests.RequestException, KeyError, ValueError):
+        return None
+
 
 def recursivebest_move(position, elo, color):
     # Encode FEN position for URL
