@@ -115,6 +115,30 @@ def avg_best_move(position, elo):
     except (requests.RequestException, KeyError, ValueError):
         return None
 
+def avg_player_move_deterministic(position, elo):
+    """
+    Get the most commonly played move for a given position and ELO rating.
+    Returns the move with the highest move_times_played count.
+    """
+    # Encode FEN position for URL
+    fen_encoded = base64.b64encode(position.fen().encode("utf-8")).decode("utf-8")
+
+    url = f"{API_BASE_URL}/fen/{fen_encoded}/{elo}/moves"
+
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        moves_data = response.json()
+
+        if isinstance(moves_data, list) and moves_data:
+            # Find move with highest play count
+            most_common_move = max(moves_data, key=lambda x: x["move_times_played"])
+            return most_common_move["moveSAN"]
+
+        return None
+    except (requests.RequestException, KeyError, ValueError):
+        return None
+
 def recursivebest_move(position, elo, color):
     # Encode FEN position for URL
     fen_encoded = base64.b64encode(position.fen().encode("utf-8")).decode("utf-8")
