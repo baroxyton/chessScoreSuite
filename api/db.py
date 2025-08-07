@@ -5,8 +5,8 @@ FILE = "../models/results.sqlite"
 
 
 class Database:
-    def __init__(self):
-        self.connect(FILE)
+    def __init__(self, file=FILE):
+        self.connect(file)
 
     def connect(self, db_file):
         self.connection = sqlite3.connect(db_file)
