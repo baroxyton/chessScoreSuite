@@ -75,6 +75,46 @@ def eval_pos_avg(position, elo):
         return None
 
 
+def avg_best_move(position, elo):
+    """
+    Get the move with the highest average performance (best win rate) 
+    from the API data for a given position and ELO rating.
+    """
+    # Encode FEN position for URL
+    fen_encoded = base64.b64encode(position.fen().encode("utf-8")).decode("utf-8")
+    
+    url = f"{API_BASE_URL}/fen/{fen_encoded}/{elo}/moves"
+    
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        moves_data = response.json()
+        
+        if isinstance(moves_data, list) and moves_data:
+            # Find move with best winning percentage
+            best_move = None
+            best_score = -1
+            
+            for move in moves_data:
+                if "whiteWins" in move and "timesPlayed" in move and move["timesPlayed"] > 0:
+                    win_rate = move["whiteWins"] / move["timesPlayed"]
+                    
+                    # Adjust score based on whose turn it is
+                    if position.turn == chess.WHITE:
+                        score = win_rate
+                    else:
+                        score = 1 - win_rate  # Black wants low white win rate
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_move = move["moveSAN"]
+            
+            return best_move
+            
+        return None
+    except (requests.RequestException, KeyError, ValueError):
+        return None
+
 def recursivebest_move(position, elo, color):
     # Encode FEN position for URL
     fen_encoded = base64.b64encode(position.fen().encode("utf-8")).decode("utf-8")
