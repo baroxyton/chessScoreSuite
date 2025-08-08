@@ -1,106 +1,147 @@
-import engines
+import argparse
+import csv
 import chess
-
-openings = []
-file = open("openings.txt", "r")
-for line in file:
-    if line.strip() == "":
-        continue
-    openings.append(line.strip())
-file.close()
-openings = openings[:100]
+import engines
 
 
-def eval_to_perspective(score, color):
-    if score is None:
-        return None
-    if color == chess.WHITE:
-        return score
-    else:
-        return -score
+def _call_engine(engine_fn, board, elo, player_color):
+    """
+    Uniformly call an engine function regardless of its signature.
+    - sf_best_move(board)
+    - avg_*/(recursive*) engines expect (board, elo) or (board, elo, color)
+    """
+    if engine_fn is engines.sf_best_move:
+        return engine_fn(board)
+    if engine_fn in (engines.recursivebest_move, engines.recursiveworst_move):
+        return engine_fn(board, elo, player_color)
+    return engine_fn(board, elo)
 
 
-def play_game(opening_fen: str, players_flip: bool, elo: int) -> list[dict]:
-    board = chess.Board(opening_fen)
-    result = []
+def play_game(evaluated_fn, baseline_fn, eval_function, start_fen, evaluated_color, elo):
+    """
+    Plays a single game and returns the list of evaluations from the evaluated engine's perspective.
+    """
+    board = chess.Board(start_fen)
+    evaluations = []
 
-    # Determine Stockfish's color based on the starting position and flip setting
-    starting_turn = board.turn
-    if not players_flip:
-        # Stockfish plays as whoever's turn it is to start
-        stockfish_color = starting_turn
-    else:
-        # Stockfish plays as the opposite color from who starts
-        stockfish_color = not starting_turn
-
-    ply = 0
-    while not board.is_game_over():
-        # Check if it's Stockfish's turn
-        is_stockfish_turn = board.turn == stockfish_color
-
-        # --- generate move --------------------------------------------------
-        if is_stockfish_turn:
-            san1 = engines.sf_best_move(
-                board,  # elo, #board.turn == chess.WHITE
-            )  # returns UCI or None
-            if san1 is None:
-                break
-            move = board.parse_san(san1)
-            move_str = san1
+    while not board.is_game_over(claim_draw=True):
+        # Evaluate position BEFORE making the move, from evaluated engine's perspective
+        if eval_function is engines.eval_pos_avg:
+            eval_value = eval_function(board, elo)
         else:
-            san = engines.avg_player_move(board, elo)  # returns SAN or None
-            if san is None:
-                break
-            move = board.parse_san(san)
-            move_str = san
+            eval_value = eval_function(board)
+
+        if eval_value is not None:
+            if evaluated_color == chess.BLACK:
+                eval_value = -eval_value
+            evaluations.append(eval_value)
+
+        # Decide whose turn and use the correct engine
+        current_color = board.turn
+        if current_color == evaluated_color:
+            move_result = _call_engine(evaluated_fn, board, elo, evaluated_color)
+        else:
+            move_result = _call_engine(baseline_fn, board, elo, chess.WHITE if evaluated_color == chess.BLACK else chess.BLACK)
+
+        if move_result is None:
+            break
+
+        # Try parsing as UCI first, then SAN
+        try:
+            try:
+                move = chess.Move.from_uci(move_result)
+                if move not in board.legal_moves:
+                    raise ValueError("Invalid UCI move")
+            except (ValueError, chess.InvalidMoveError):
+                move = board.parse_san(move_result)
+        except (ValueError, chess.InvalidMoveError, chess.IllegalMoveError):
+            break
 
         board.push(move)
 
-        # --- evaluate position ---------------------------------------------
-        score_raw = engines.eval_pos(board)  # white-centred score
-        score_stk = eval_to_perspective(score_raw, stockfish_color)
-
-        result.append(
-            {
-                "fen": board.fen(),
-                "move": move_str,
-                "score": score_stk,
-                "turn": board.turn,
-                "ply": ply,
-            }
-        )
-        ply += 1
-
-    return result
+    return evaluations
 
 
 def main():
-    # eval for all openings, plot average score history
-    all_games = []
-    for opening in openings:
-        print(f"Evaluating opening: {opening}")
-        # Play games with both player configurations
-        game1 = play_game(opening, players_flip=False, elo=1500)
-        game2 = play_game(opening, players_flip=True, elo=1500)
-        all_games.extend([game1, game2])
+    parser = argparse.ArgumentParser(description="Evaluate a chess engine against a baseline engine.")
+    parser.add_argument(
+        "--evaluated",
+        type=str,
+        required=True,
+        choices=engines.ENGINE_FUNCTIONS.keys(),
+        help="The engine being evaluated."
+    )
+    parser.add_argument(
+        "--baseline",
+        type=str,
+        default="avg_player",
+        choices=engines.ENGINE_FUNCTIONS.keys(),
+        help="The baseline engine (default: avg_player)."
+    )
+    parser.add_argument(
+        "--eval",
+        type=str,
+        default="sf",
+        choices=engines.EVAL_FUNCTIONS.keys(),
+        help="The evaluation method to use for recording scores."
+    )
+    parser.add_argument(
+        "--games",
+        type=int,
+        default=10,
+        help="Number of games to play."
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="results.csv",
+        help="Output CSV file name."
+    )
+    parser.add_argument(
+        "--elo",
+        type=int,
+        default=2000,
+        help="ELO rating for API-based engines."
+    )
+    parser.add_argument(
+        "--openings",
+        type=str,
+        default="openings.txt",
+        help="Path to a file with FEN lines."
+    )
 
-    # Calculate average score progression
-    if all_games:
-        max_moves = max(len(game) for game in all_games if game)
-        avg_scores = []
+    args = parser.parse_args()
 
-        for move_idx in range(max_moves):
-            scores_at_move = []
-            for game in all_games:
-                if move_idx < len(game) and game[move_idx]["score"] is not None:
-                    scores_at_move.append(game[move_idx]["score"])
+    evaluated_fn = engines.ENGINE_FUNCTIONS[args.evaluated]
+    baseline_fn = engines.ENGINE_FUNCTIONS[args.baseline]
+    eval_function = engines.EVAL_FUNCTIONS[args.eval]
 
-            if scores_at_move:
-                avg_scores.append(sum(scores_at_move) / len(scores_at_move))
+    try:
+        with open(args.openings, "r") as f:
+            openings = [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        print(f"Openings file not found: {args.openings}")
+        return
 
-        print("Average score progression:")
-        for i, score in enumerate(avg_scores):
-            print(f"Move {i+1}: {score:.2f}")
+    openings_to_play = openings[:min(len(openings), args.games)]
+    all_game_evals = []
+
+    print(f"Playing {len(openings_to_play)} games...")
+
+    for i, fen in enumerate(openings_to_play):
+        evaluated_color = chess.WHITE if i % 2 == 0 else chess.BLACK
+        print(f"Game {i+1}/{len(openings_to_play)}: Evaluated plays as {'White' if evaluated_color == chess.WHITE else 'Black'}")
+
+        game_evals = play_game(evaluated_fn, baseline_fn, eval_function, fen, evaluated_color, args.elo)
+        all_game_evals.append(game_evals)
+
+    print(f"Saving results to {args.output}...")
+    with open(args.output, "w", newline="") as f:
+        writer = csv.writer(f)
+        for evals in all_game_evals:
+            writer.writerow(evals)
+
+    print("Done.")
 
 
 if __name__ == "__main__":
