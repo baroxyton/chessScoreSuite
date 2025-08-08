@@ -836,7 +836,7 @@ def castling_index(idx):
 def side_to_move():
     return RANDOM_ARRAY[780]
 
-# Rating thresholds
+# Unused, for reference
 ELO_NOVICE = 1000
 ELO_BEGINNER = 1400
 ELO_INTERMEDIATE = 1800
@@ -844,17 +844,7 @@ ELO_STRONG = 2200
 ELO_EXPERT = 2600
 
 def hash_add_rating(position, rating):
-    if rating < ELO_NOVICE:
-        return position ^ RATING_ARRAY[0]
-    if rating < ELO_BEGINNER:
-        return position ^ RATING_ARRAY[1]
-    if rating < ELO_INTERMEDIATE:
-        return position ^ RATING_ARRAY[2]
-    if rating < ELO_STRONG:
-        return position ^ RATING_ARRAY[3]
-    if rating < ELO_EXPERT:
-        return position ^ RATING_ARRAY[4]
-    return position ^ RATING_ARRAY[5]
+    return position ^ RATING_ARRAY[rating]
 
 # See: https://disservin.github.io/chess-library/pages/piece.html and https://python-chess.readthedocs.io/en/latest/core.html
 def piece2num(piece):

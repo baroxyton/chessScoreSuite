@@ -5,19 +5,22 @@ import { Chessboard2 } from "chessboard2";
 import { Chess } from "chess.js";
 import "../node_modules/@chrisoakman/chessboard2/dist/chessboard2.min.css";
 
-const API_URL = " http://0.0.0.0:5554";
+const API_URL = "http://0.0.0.0:5554";
 
-let rating = document.querySelector("#rating").value;
-let color = document.querySelector("#color").value;
+const ratingSelect = document.querySelector("#rating") as HTMLSelectElement;
+const colorSelect = document.querySelector("#color") as HTMLSelectElement;
 
-document.querySelector("#rating").addEventListener("change", async (event) => {
-  rating = event.target.value;
+let rating = (ratingSelect?.value || "").trim();
+let color = (colorSelect?.value || "white").trim();
+
+ratingSelect?.addEventListener("change", async (event) => {
+  rating = (event.target as HTMLSelectElement).value.trim();
   currentMove = null;
   await loadMoves();
   renderMoves();
 });
-document.querySelector("#color").addEventListener("change", async (event) => {
-  color = event.target.value;
+colorSelect?.addEventListener("change", async (event) => {
+  color = (event.target as HTMLSelectElement).value.trim();
   await loadMoves();
   renderMoves();
 });
@@ -56,9 +59,13 @@ function sortMoves() {
   }
 }
 
+function fenParam(): string {
+  // URL-encode the base64 so it’s safe in a URL path segment
+  return encodeURIComponent(btoa(defaultBoard.fen()));
+}
+
 async function loadMovesFen() {
-  const fen = btoa(defaultBoard.fen());
-  const response = await fetch(`${API_URL}/fen/${fen}/${rating}/moves`);
+  const response = await fetch(`${API_URL}/fen/${fenParam()}/${rating}/moves`);
   moves = await response.json();
 }
 
@@ -80,7 +87,7 @@ async function loadMoves() {
 
 async function fetchMoveFen() {
   const response = await fetch(
-    `${API_URL}/fen/${btoa(defaultBoard.fen())}/${rating}/position`,
+    `${API_URL}/fen/${fenParam()}/${rating}/position`,
   );
   const data = await response.json();
   return data;

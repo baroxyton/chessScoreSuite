@@ -100,7 +100,7 @@ def main():
     parser.add_argument(
         "--elo",
         type=int,
-        default=2000,
+        default=2,
         help="ELO rating for API-based engines."
     )
     parser.add_argument(
