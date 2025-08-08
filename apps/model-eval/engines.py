@@ -10,16 +10,18 @@ API_BASE_URL = "http://localhost:5554"
 
 
 def sf_best_move(board):
+    print("STARTING CHESS MOVE")
     with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
-        result = engine.play(board, chess.engine.Limit(depth=17))
+        result = engine.play(board, chess.engine.Limit(depth=7))
         if result.move is None:
             return None
+        print("CHESS MOVE DONE")
         return result.move.uci()
 
 
 def eval_pos(board):
     with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
-        info = engine.analyse(board, chess.engine.Limit(depth=17))
+        info = engine.analyse(board, chess.engine.Limit(depth=7))
         if "score" not in info:
             return None
         score = info["score"].white()
@@ -162,3 +164,47 @@ def recursivebest_move(position, elo, color):
         return None
     except (requests.RequestException, KeyError, ValueError):
         return None
+
+def recursiveworst_move(position, elo, color):
+    """
+    Chooses the move that is worst for the current player,
+    i.e., the move that leads to the opponent's highest recursive score.
+    """
+    # Encode FEN position for URL
+    fen_encoded = base64.b64encode(position.fen().encode("utf-8")).decode("utf-8")
+
+    url = f"{API_BASE_URL}/fen/{fen_encoded}/{elo}/moves"
+
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        moves_data = response.json()
+
+        if isinstance(moves_data, list) and moves_data:
+            # For WHITE, pick move maximizing opponent's recursiveScoreBlack
+            # For BLACK, pick move maximizing opponent's recursiveScoreWhite
+            if color is True:  # White to move
+                worst_move = max(moves_data, key=lambda x: x["recursiveScoreBlack"])
+            else:  # Black to move
+                worst_move = max(moves_data, key=lambda x: x["recursiveScoreWhite"])
+
+            return worst_move["moveSAN"]
+
+        return None
+    except (requests.RequestException, KeyError, ValueError):
+        return None
+
+
+ENGINE_FUNCTIONS = {
+    "avg_player": avg_player_move,
+    "avg_best": avg_best_move,
+    "avg_player_deterministic": avg_player_move_deterministic,
+    "recursive_worst": recursiveworst_move,
+    "recursive_best": recursivebest_move,
+    "sf": sf_best_move,
+}
+
+EVAL_FUNCTIONS = {
+    "sf": eval_pos,
+    "avg": eval_pos_avg,
+}
