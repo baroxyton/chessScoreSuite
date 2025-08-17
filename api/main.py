@@ -19,6 +19,7 @@ app.add_middleware(
 )
 
 def should_use_min50_db(position_hash: int = None, fen: str = None, rating: int = None) -> bool:
+    return True
     """
     Determine whether to use min50 database based on data completeness.
     Returns True if we should use min50 database, False for default database.

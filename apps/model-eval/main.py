@@ -17,7 +17,7 @@ def _call_engine(engine_fn, board, elo, player_color):
     return engine_fn(board, elo)
 
 
-def play_game(evaluated_fn, baseline_fn, eval_function, start_fen, evaluated_color, elo):
+def play_game(evaluated_fn, baseline_fn, eval_function, start_fen, evaluated_color, evaluated_elo, baseline_elo):
     """
     Plays a single game and returns the list of evaluations from the evaluated engine's perspective.
     """
@@ -27,7 +27,7 @@ def play_game(evaluated_fn, baseline_fn, eval_function, start_fen, evaluated_col
     while not board.is_game_over(claim_draw=True):
         # Evaluate position BEFORE making the move, from evaluated engine's perspective
         if eval_function is engines.eval_pos_avg:
-            eval_value = eval_function(board, elo)
+            eval_value = eval_function(board, evaluated_elo)
         else:
             eval_value = eval_function(board)
 
@@ -39,9 +39,14 @@ def play_game(evaluated_fn, baseline_fn, eval_function, start_fen, evaluated_col
         # Decide whose turn and use the correct engine
         current_color = board.turn
         if current_color == evaluated_color:
-            move_result = _call_engine(evaluated_fn, board, elo, evaluated_color)
+            move_result = _call_engine(evaluated_fn, board, evaluated_elo, evaluated_color)
         else:
-            move_result = _call_engine(baseline_fn, board, elo, chess.WHITE if evaluated_color == chess.BLACK else chess.BLACK)
+            move_result = _call_engine(
+                baseline_fn,
+                board,
+                baseline_elo,
+                chess.WHITE if evaluated_color == chess.BLACK else chess.BLACK
+            )
 
         if move_result is None:
             break
@@ -98,10 +103,16 @@ def main():
         help="Output CSV file name."
     )
     parser.add_argument(
-        "--elo",
+        "--evaluated-elo",
         type=int,
         default=2,
-        help="ELO rating for API-based engines."
+        help="ELO rating for the evaluated engine (API-based engines)."
+    )
+    parser.add_argument(
+        "--baseline-elo",
+        type=int,
+        default=2,
+        help="ELO rating for the baseline engine (API-based engines)."
     )
     parser.add_argument(
         "--openings",
@@ -109,21 +120,31 @@ def main():
         default="openings.txt",
         help="Path to a file with FEN lines."
     )
+    parser.add_argument(
+        "--all-startpos",
+        action="store_true",
+        help="If set, all games start from the standard initial chess position (ignores --openings)."
+    )
 
     args = parser.parse_args()
 
+    # Re-added: map CLI names to actual engine/eval callables
     evaluated_fn = engines.ENGINE_FUNCTIONS[args.evaluated]
     baseline_fn = engines.ENGINE_FUNCTIONS[args.baseline]
     eval_function = engines.EVAL_FUNCTIONS[args.eval]
 
-    try:
-        with open(args.openings, "r") as f:
-            openings = [line.strip() for line in f if line.strip()]
-    except FileNotFoundError:
-        print(f"Openings file not found: {args.openings}")
-        return
+    if args.all_startpos:
+        openings_to_play = [chess.STARTING_FEN] * args.games
+        print(f"Using standard starting position for all {args.games} games.")
+    else:
+        try:
+            with open(args.openings, "r") as f:
+                openings = [line.strip() for line in f if line.strip()]
+        except FileNotFoundError:
+            print(f"Openings file not found: {args.openings}")
+            return
+        openings_to_play = openings[:min(len(openings), args.games)]
 
-    openings_to_play = openings[:min(len(openings), args.games)]
     all_game_evals = []
 
     print(f"Playing {len(openings_to_play)} games...")
@@ -132,7 +153,15 @@ def main():
         evaluated_color = chess.WHITE if i % 2 == 0 else chess.BLACK
         print(f"Game {i+1}/{len(openings_to_play)}: Evaluated plays as {'White' if evaluated_color == chess.WHITE else 'Black'}")
 
-        game_evals = play_game(evaluated_fn, baseline_fn, eval_function, fen, evaluated_color, args.elo)
+        game_evals = play_game(
+            evaluated_fn,
+            baseline_fn,
+            eval_function,
+            fen,
+            evaluated_color,
+            args.evaluated_elo,
+            args.baseline_elo
+        )
         all_game_evals.append(game_evals)
 
     print(f"Saving results to {args.output}...")
