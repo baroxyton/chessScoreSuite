@@ -9,51 +9,98 @@
   </head>
   <body>
     <h1 id="title">Recursive Score Explorer</h1>
-    <div id="main">
-      <div id="moveList">
-        <h1>Moves</h1>
+
+    <!-- Tabs -->
+    <div id="tabs">
+      <button id="tab-explorer">Explorer</button>
+      <button id="tab-blitz">Blitz</button>
+    </div>
+
+    <!-- Explorer View (existing content wrapped) -->
+    <div id="explorerView">
+      <div id="main">
+        <div id="moveList">
+          <h1>Moves</h1>
+        </div>
+        <div class="boardWrap">
+          <div id="board"></div>
+        </div>
+        <div id="boardOptions">
+          <h1>Options</h1>
+          <h2>Our Color</h2>
+          <select id="color">
+            <option value="white">White</option>
+            <option value="black">Black</option>
+          </select>
+          <h2>Skill Level</h2>
+          <select id="rating">
+            <option value="0">Novice</option>
+            <option value="1">Beginner</option>
+            <option value="2">Intermediate</option>
+            <option value="3">Strong</option>
+            <option value="3">Expert</option>
+          </select>
+          <div class="button" id="reset">Reset Board</div>
+        </div>
       </div>
-      <div class="boardWrap">
-        <div id="board"></div>
-      </div>
-      <div id="boardOptions">
-        <h1>Options</h1>
-        <h2>Our Color</h2>
-        <select id="color">
-          <option value="white">White</option>
-          <option value="black">Black</option>
-        </select>
-        <h2>Skill Level</h2>
-        <select id="rating">
-          <option value="0">Novice</option>
-          <option value="1">Beginner</option>
-          <option value="2">Intermediate</option>
-          <option value="3">Strong</option>
-          <option value="3">Expert</option>
-        </select>
-        <div class="button" id="reset">Reset Board</div>
+      <div class="tableWrapper">
+        <div id="tableView">
+          <h2>Moves</h2>
+          <table id="moveTable">
+            <tr>
+              <th>Company</th>
+              <th>Contact</th>
+              <th>Country</th>
+            </tr>
+            <tr>
+              <td>Alfreds Futterkiste</td>
+              <td>Maria Anders</td>
+              <td>Germany</td>
+            </tr>
+            <tr>
+              <td>Centro comercial Moctezuma</td>
+              <td>Francisco Chang</td>
+              <td>Mexico</td>
+            </tr>
+          </table>
+        </div>
       </div>
     </div>
-    <div class="tableWrapper">
-      <div id="tableView">
-        <h2>Moves</h2>
-        <table id="moveTable">
-          <tr>
-            <th>Company</th>
-            <th>Contact</th>
-            <th>Country</th>
-          </tr>
-          <tr>
-            <td>Alfreds Futterkiste</td>
-            <td>Maria Anders</td>
-            <td>Germany</td>
-          </tr>
-          <tr>
-            <td>Centro comercial Moctezuma</td>
-            <td>Francisco Chang</td>
-            <td>Mexico</td>
-          </tr>
-        </table>
+
+    <!-- Blitz View (new) -->
+    <div id="blitzView" style="display:none;">
+      <div id="blitz">
+        <div class="boardWrap">
+          <div id="blitzBoard"></div>
+        </div>
+        <div id="blitzOptions">
+          <h1>Blitz</h1>
+          <h2>Play as</h2>
+          <select id="blitzColor">
+            <option value="white">White</option>
+            <option value="black">Black</option>
+          </select>
+          <h2>Engine Skill</h2>
+          <select id="blitzSkill">
+            <option value="0">Novice</option>
+            <option value="1" selected>Beginner</option>
+            <option value="2">Intermediate</option>
+            <option value="3">Strong</option>
+          </select>
+          <h2>Time</h2>
+          <select id="blitzTime">
+            <option value="180000">3 + 0</option>
+            <option value="300000" selected>5 + 0</option>
+            <option value="600000">10 + 0</option>
+          </select>
+          <div class="button" id="blitzStart">New Game</div>
+          <div class="button" id="blitzResign">Resign</div>
+          <div id="blitzClocks">
+            <div>White: <span id="whiteClock">05:00</span></div>
+            <div>Black: <span id="blackClock">05:00</span></div>
+          </div>
+          <div id="blitzStatus"></div>
+        </div>
       </div>
     </div>
   </body>

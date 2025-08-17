@@ -97,3 +97,7 @@ select {
 .button:active {
   background-color: #666;
 }
+
+#blitz{
+  width: 50%;
+}
