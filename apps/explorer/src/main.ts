@@ -5,7 +5,7 @@ import { Chessboard2 } from "chessboard2";
 import { Chess } from "chess.js";
 import "../node_modules/@chrisoakman/chessboard2/dist/chessboard2.min.css";
 
-const API_URL = "http://0.0.0.0:5554";
+const API_URL = "http://127.0.0.1:5554";
 
 const ratingSelect = document.querySelector("#rating") as HTMLSelectElement;
 const colorSelect = document.querySelector("#color") as HTMLSelectElement;
@@ -265,7 +265,7 @@ let clockInterval: any = null;
 let engineMovesPlayed = 0;
 
 // Minimum share of play to consider a move (2%)
-const BLITZ_MIN_PLAY_RATE = 0.02;
+const BLITZ_MIN_PLAY_RATE = 0.01;
 
 // --- Helpers ---
 function formatMs(ms: number) {
@@ -452,7 +452,7 @@ async function engineTurn() {
 
     // First two engine moves: play the most common move
     const best =
-      engineMovesPlayed < 2
+      engineMovesPlayed < 1
         ? pickMostCommonBlitzMove(moves)
         : pickBestBlitzMove(moves, engineIsWhite);
 
