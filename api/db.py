@@ -1,3 +1,4 @@
+# KI-generiert
 import sqlite3
 from chess_hash import fen2hash
 

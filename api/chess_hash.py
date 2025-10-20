@@ -1,4 +1,5 @@
 # https://github.com/baroxyton/chess-library/blob/noassert_128bhash/src/zobrist.hpp
+# Mithilfe von KI geschrieben
 import chess
 RANDOM_ARRAY = [
     ((0x3797A0ABC005E436) << 64) | 0x4F8DF6EEA13920BD,
