@@ -22,6 +22,8 @@ ratingSelect?.addEventListener("change", async (event) => {
 });
 colorSelect?.addEventListener("change", async (event) => {
   color = (event.target as HTMLSelectElement).value.trim();
+  // Flip board orientation
+  board.orientation(color);
   await loadMoves();
   renderMoves();
 });
@@ -29,6 +31,8 @@ colorSelect?.addEventListener("change", async (event) => {
 let moves: any[] = [];
 let currentMove: any = null;
 let renderColumn = 0;
+let moveHistory: any[] = []; // Track all moves played
+let historyIndex = -1; // Current position in history
 
 function sortMoves() {
   const column = renderColumn;
@@ -143,6 +147,11 @@ function renderMoves() {
       <td>${percent((color == "white" ? move.whiteWins : move.blackWins) / move.timesPlayed)}</td>
       <td>${percent(color == "white" ? move.recursiveScoreWhite : move.recursiveScoreBlack)}</td>
     `;
+    // Make row clickable to play the move
+    row.style.cursor = "pointer";
+    row.addEventListener("click", async () => {
+      await playMove(move.moveSAN);
+    });
     movesTable.appendChild(row);
   });
   // add event listeners to the table headers
@@ -159,13 +168,35 @@ function renderMoves() {
 let defaultBoard = new Chess();
 let positions = [];
 
-function onDragStart(source: number, piece: number) {
+function onDragStart(source: string, piece: string) {
+  // Allow dragging any piece - validation happens in onMovePlayed
   return true;
 }
 
-async function onMovePlayed(event: any) {
-  // get the move from the event
-  let isError = false;
+async function playMove(moveSAN: string) {
+  try {
+    const move = defaultBoard.move(moveSAN);
+    if (!move) return;
+    
+    // Truncate history if we're not at the end
+    if (historyIndex < moveHistory.length - 1) {
+      moveHistory = moveHistory.slice(0, historyIndex + 1);
+    }
+    
+    moveHistory.push({ san: move.san, fen: defaultBoard.fen() });
+    historyIndex = moveHistory.length - 1;
+    
+    board.position(defaultBoard.fen());
+    await loadCurrentMove();
+    await loadMoves();
+    renderMoves();
+    renderMoveHistory();
+  } catch (error) {
+    console.error("Invalid move:", error);
+  }
+}
+
+function onMovePlayed(event: any) {
   let move;
   try {
     move = defaultBoard.move({
@@ -174,22 +205,156 @@ async function onMovePlayed(event: any) {
       promotion: "q", // always promote to a queen for example simplicity
     });
   } catch (error) {
-    isError = true;
+    // illegal move - snap back
+    return "snapback";
   }
-  // illegal move
-  if (isError) return "snapback";
+  console.log(move)
+  
+  // If move is null/undefined, also snapback
+  if (!move) return "snapback";
 
   // make the move on the board
   board.position(defaultBoard.fen());
 
-  await loadCurrentMove();
+  // Truncate history if we're not at the end
+  if (historyIndex < moveHistory.length - 1) {
+    moveHistory = moveHistory.slice(0, historyIndex + 1);
+  }
+  
+  moveHistory.push({ san: move.san, fen: defaultBoard.fen() });
+  historyIndex = moveHistory.length - 1;
 
-  await loadMoves();
+  loadCurrentMove();
+
+  loadMoves();
   renderMoves();
+  renderMoveHistory();
 
   // save the move to the history
   positions.push(move);
 }
+
+function renderMoveHistory() {
+  const moveListEl = document.querySelector("#moveList");
+  if (!moveListEl) return;
+  
+  let html = "<h1>Moves</h1>";
+  
+  if (moveHistory.length === 0) {
+    html += "<p>No moves yet</p>";
+  } else {
+    html += '<div id="moveHistoryList">';
+    for (let i = 0; i < moveHistory.length; i++) {
+      const moveNum = Math.floor(i / 2) + 1;
+      const isWhite = i % 2 === 0;
+      const isActive = i === historyIndex;
+      
+      if (isWhite) {
+        html += `<div class="move-pair">`;
+        html += `<span class="move-number">${moveNum}.</span>`;
+      }
+      
+      html += `<span class="move-san ${isActive ? 'active' : ''}" data-index="${i}">${moveHistory[i].san}</span>`;
+      
+      if (!isWhite || i === moveHistory.length - 1) {
+        html += `</div>`;
+      }
+    }
+    html += '</div>';
+  }
+  
+  html += '<div id="moveListButtons">';
+  html += '<button id="exportFEN">Export FEN</button>';
+  html += '<button id="exportPGN">Export PGN</button>';
+  html += '<button id="lichessAnalysis">Lichess Analysis</button>';
+  html += '</div>';
+  
+  moveListEl.innerHTML = html;
+  
+  // Add click handlers to moves
+  const moveSans = moveListEl.querySelectorAll(".move-san");
+  moveSans.forEach((el) => {
+    el.addEventListener("click", async () => {
+      const index = parseInt((el as HTMLElement).dataset.index || "0");
+      await jumpToMove(index);
+    });
+  });
+  
+  // Add export handlers
+  document.getElementById("exportFEN")?.addEventListener("click", exportFEN);
+  document.getElementById("exportPGN")?.addEventListener("click", exportPGN);
+  document.getElementById("lichessAnalysis")?.addEventListener("click", openLichessAnalysis);
+}
+
+async function jumpToMove(index: number) {
+  if (index < 0 || index >= moveHistory.length) return;
+  
+  historyIndex = index;
+  defaultBoard = new Chess();
+  
+  for (let i = 0; i <= index; i++) {
+    defaultBoard.load(moveHistory[i].fen);
+  }
+  
+  board.position(defaultBoard.fen());
+  await loadCurrentMove();
+  await loadMoves();
+  renderMoves();
+  renderMoveHistory();
+}
+
+function undoMove() {
+  if (historyIndex > 0) {
+    jumpToMove(historyIndex - 1);
+  } else if (historyIndex === 0) {
+    historyIndex = -1;
+    defaultBoard.reset();
+    board.position(defaultBoard.fen());
+    loadCurrentMove().then(() => {
+      loadMoves().then(() => {
+        renderMoves();
+        renderMoveHistory();
+      });
+    });
+  }
+}
+
+function redoMove() {
+  if (historyIndex < moveHistory.length - 1) {
+    jumpToMove(historyIndex + 1);
+  }
+}
+
+function exportFEN() {
+  const fen = defaultBoard.fen();
+  navigator.clipboard.writeText(fen).then(() => {
+    alert("FEN copied to clipboard:\n" + fen);
+  });
+}
+
+function exportPGN() {
+  const pgn = defaultBoard.pgn();
+  navigator.clipboard.writeText(pgn).then(() => {
+    alert("PGN copied to clipboard:\n" + pgn);
+  });
+}
+
+function openLichessAnalysis() {
+  const fen = defaultBoard.fen();
+  const url = `https://lichess.org/analysis/${encodeURIComponent(fen)}`;
+  window.open(url, "_blank");
+}
+
+// Keyboard navigation
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") {
+    e.preventDefault();
+    undoMove();
+  } else if (e.key === "ArrowRight") {
+    e.preventDefault();
+    redoMove();
+  }
+});
 
 const config = {
   PieceTheme: "img/chesspieces/wikipedia/{piece}.svg",
@@ -205,6 +370,8 @@ async function init() {
   await loadCurrentMove();
   await loadMoves();
   renderMoves();
+  renderMoveHistory();
+  board.orientation(color);
 }
 init();
 
@@ -216,7 +383,10 @@ if (resetButton) {
     positions = [];
     moves = [];
     currentMove = null;
+    moveHistory = [];
+    historyIndex = -1;
     renderMoves();
+    renderMoveHistory();
   });
 }
 
